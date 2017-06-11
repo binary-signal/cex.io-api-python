@@ -1,15 +1,16 @@
 # -*- coding: utf-8 -*-
-# Author:	t0pep0
+# Original Author:	t0pep0
 # e-mail:	t0pep0.gentoo@gmail.com
-# Jabber:	t0pep0@jabber.ru
-# BTC   :	1ipEA2fcVyjiUnBqUx7PVy5efktz2hucb
-# donate free =)
+# added some modifications me
 import hmac
 import hashlib
 import time
 import urllib
-import urllib2
+from   urllib import request
+from urllib.parse import urlencode
 import json
+import requests
+
 
 
 class API(object):
@@ -31,16 +32,16 @@ class API(object):
     # generate segnature
     def __signature(self):
         string = self.__nonce_v + self.__username + self.__api_key  # create string
-        signature = hmac.new(self.__api_secret, string, digestmod=hashlib.sha256).hexdigest().upper()  # create signature
+        signature = hmac.new(bytes(self.__api_secret, 'latin-1'), bytes(string, 'latin-1'),
+                             digestmod=hashlib.sha256).hexdigest().upper()  # create signature
         return signature
 
     def __post(self, url, param):  # Post Request (Low Level API call)
-        params = urllib.urlencode(param)
-        req = urllib2.Request(url, params, {'User-agent': 'bot-cex.io-' + self.__username})
-        page = urllib2.urlopen(req).read()
-        return page
+        page = requests.post(url, param)
+        return  page.text
 
-    def api_call(self, method, param={}, private=0, couple=''):  # api call (Middle level)
+    def api_call(self, method, param={}, private=0,
+                 couple=''):  # api call (Middle level)
         url = 'https://cex.io/api/' + method + '/'  # generate url
         if couple != '':
             url = url + couple + '/'  # set couple if needed
@@ -53,29 +54,34 @@ class API(object):
         answer = self.__post(url, param)  # Post Request
         return json.loads(answer)  # generate dict and return
 
-    def ticker(self, couple='GHS/BTC'):
+    def ticker(self, couple='ETH/EUR'):
         return self.api_call('ticker', {}, 0, couple)
 
-    def order_book(self, couple='GHS/BTC'):
+    def order_book(self, couple='ETH/EUR'):
         return self.api_call('order_book', {}, 0, couple)
 
-    def trade_history(self, since=1, couple='GHS/BTC'):
+    def trade_history(self, since=1, couple='ETH/EUR'):
         return self.api_call('trade_history', {"since": str(since)}, 0, couple)
 
     def balance(self):
         return self.api_call('balance', {}, 1)
 
-    def current_orders(self, couple='GHS/BTC'):
+    def current_orders(self, couple='ETH/EUR'):
         return self.api_call('open_orders', {}, 1, couple)
 
     def cancel_order(self, order_id):
         return self.api_call('cancel_order', {"id": order_id}, 1)
 
-    def place_order(self, ptype='buy', amount=1, price=1, couple='GHS/BTC'):
-        return self.api_call('place_order', {"type": ptype, "amount": str(amount), "price": str(price)}, 1, couple)
+    def place_order(self, ptype='buy', amount=1, price=1, couple='ETH/EUR'):
+        return self.api_call('place_order',
+                             {"type": ptype, "amount": str(amount),
+                              "price": str(price)}, 1, couple)
 
-    def price_stats(self, last_hours, max_resp_arr_size, couple='GHS/BTC'):
+    def price_stats(self, last_hours, max_resp_arr_size, couple='ETH/EUR'):
         return self.api_call(
-                'price_stats',
-                {"lastHours": last_hours, "maxRespArrSize": max_resp_arr_size},
-                0, couple)
+            'price_stats',
+            {"lastHours": last_hours, "maxRespArrSize": max_resp_arr_size},
+            0, couple)
+
+    def converter(self, amount, couple='ETH/EUR'):
+        return self.api_call('convert',{"amnt" :amount} ,0, couple)
